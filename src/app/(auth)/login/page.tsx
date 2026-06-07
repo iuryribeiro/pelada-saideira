@@ -56,7 +56,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-600 to-green-800 px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white px-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -66,7 +66,7 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-6">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-md p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-5">Entrar</h2>
 
           {error && (
