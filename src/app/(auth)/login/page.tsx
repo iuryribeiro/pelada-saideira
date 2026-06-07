@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { signInWithEmail } from '@/lib/supabase/auth';
 import { useAuthStore } from '@/store/auth-store';
 import { Spinner } from '@/components/ui/Spinner';
-import { Eye, EyeOff, Swords } from 'lucide-react';
+import Image from 'next/image';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -59,11 +60,9 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl shadow-lg mb-4">
-            <Swords className="w-10 h-10 text-green-600" />
+          <div className="inline-flex items-center justify-center mb-2">
+            <Image src="/logo.png" alt="Turma da Pelada Saideira" width={160} height={160} priority />
           </div>
-          <h1 className="text-3xl font-bold text-white">Pelada App</h1>
-          <p className="text-green-200 mt-1">Gerencie sua pelada</p>
         </div>
 
         {/* Card */}
