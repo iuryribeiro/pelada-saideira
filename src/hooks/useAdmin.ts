@@ -10,6 +10,8 @@ import {
   atualizarJogador,
   cadastrarAvulso,
   CadastrarAvulsoData,
+  convidarJogador,
+  ConvidarJogadorData,
   fetchJogosDisponiveis,
   adicionarAvulsoAoJogo,
   adicionarConvidadoComPerfil,
@@ -115,6 +117,16 @@ export function useCadastrarAvulso() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (dados: CadastrarAvulsoData) => cadastrarAvulso(dados),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todosJogadores'] });
+    },
+  });
+}
+
+export function useConvidarJogador() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dados: ConvidarJogadorData) => convidarJogador(dados),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todosJogadores'] });
     },

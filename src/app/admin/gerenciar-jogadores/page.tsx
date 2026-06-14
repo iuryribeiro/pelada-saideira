@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
-import { useTodosJogadores, useAtualizarJogador, useCadastrarAvulso } from '@/hooks/useAdmin';
+import { useTodosJogadores, useAtualizarJogador, useCadastrarAvulso, useConvidarJogador } from '@/hooks/useAdmin';
 import { Modal } from '@/components/ui/Modal';
 import { TipoBadge, PosicaoBadge } from '@/components/ui/Badge';
 import { Spinner, FullPageSpinner } from '@/components/ui/Spinner';
@@ -130,23 +130,38 @@ function JogadorEditModal({
 
 function CadastrarAvulsoModal({ onClose }: { onClose: () => void }) {
   const cadastrarMutation = useCadastrarAvulso();
+  const convidarMutation = useConvidarJogador();
   const [form, setForm] = useState({
     nome: '',
     apelido: '',
     telefone: '',
+    email: '',
     posicao: 'linha' as UserPosicao,
   });
   const [error, setError] = useState('');
 
+  const temEmail = form.email.trim().length > 0;
+  const isPending = cadastrarMutation.isPending || convidarMutation.isPending;
+
   const handleSave = async () => {
     if (!form.nome.trim()) { setError('Nome é obrigatório'); return; }
     try {
-      await cadastrarMutation.mutateAsync({
-        nome: form.nome.trim(),
-        apelido: form.apelido.trim() || undefined,
-        telefone: form.telefone.trim() || undefined,
-        posicao: form.posicao,
-      });
+      if (temEmail) {
+        await convidarMutation.mutateAsync({
+          email: form.email.trim(),
+          nome: form.nome.trim(),
+          apelido: form.apelido.trim() || undefined,
+          telefone: form.telefone.trim() || undefined,
+          posicao: form.posicao,
+        });
+      } else {
+        await cadastrarMutation.mutateAsync({
+          nome: form.nome.trim(),
+          apelido: form.apelido.trim() || undefined,
+          telefone: form.telefone.trim() || undefined,
+          posicao: form.posicao,
+        });
+      }
       onClose();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Erro ao cadastrar');
@@ -172,6 +187,23 @@ function CadastrarAvulsoModal({ onClose }: { onClose: () => void }) {
         <input type="tel" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} className={inputClass} placeholder="(11) 99999-9999" />
       </div>
       <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          E-mail <span className="text-gray-400 font-normal">(opcional — para enviar convite)</span>
+        </label>
+        <input
+          type="email"
+          value={form.email}
+          onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+          className={inputClass}
+          placeholder="jogador@email.com"
+        />
+        {temEmail && (
+          <p className="text-xs text-blue-600 mt-1">
+            ✉️ O jogador receberá um e-mail para criar a senha e acessar o app.
+          </p>
+        )}
+      </div>
+      <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Posição</label>
         <div className="flex gap-2">
           {(['linha', 'goleiro'] as UserPosicao[]).map(p => (
@@ -190,10 +222,10 @@ function CadastrarAvulsoModal({ onClose }: { onClose: () => void }) {
         <button onClick={onClose} className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium text-sm">Cancelar</button>
         <button
           onClick={handleSave}
-          disabled={cadastrarMutation.isPending}
+          disabled={isPending}
           className="flex-1 py-3 bg-green-600 text-white rounded-xl font-medium text-sm hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
         >
-          {cadastrarMutation.isPending ? <Spinner size="sm" /> : 'Cadastrar'}
+          {isPending ? <Spinner size="sm" /> : temEmail ? '✉️ Enviar convite' : 'Cadastrar'}
         </button>
       </div>
     </div>

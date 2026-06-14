@@ -113,6 +113,31 @@ export interface CadastrarAvulsoData {
   email?: string;
 }
 
+export interface ConvidarJogadorData {
+  email: string;
+  nome: string;
+  apelido?: string;
+  telefone?: string;
+  posicao: UserPosicao;
+}
+
+export async function convidarJogador(dados: ConvidarJogadorData): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Não autenticado');
+
+  const res = await fetch('/api/admin/convidar-jogador', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify(dados),
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'Erro ao enviar convite');
+}
+
 export async function cadastrarAvulso(dados: CadastrarAvulsoData): Promise<Profile> {
   const id = crypto.randomUUID();
   const { data, error } = await supabase
