@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
-import { useTodosJogadores, useAtualizarJogador, useCadastrarAvulso, useConvidarJogador } from '@/hooks/useAdmin';
+import { useTodosJogadores, useAtualizarJogador, useCadastrarAvulso, useConvidarJogador, useVincularEmail } from '@/hooks/useAdmin';
 import { Modal } from '@/components/ui/Modal';
 import { TipoBadge, PosicaoBadge } from '@/components/ui/Badge';
 import { Spinner, FullPageSpinner } from '@/components/ui/Spinner';
@@ -18,6 +18,7 @@ function JogadorEditModal({
   onClose: () => void;
 }) {
   const atualizarMutation = useAtualizarJogador();
+  const vincularMutation = useVincularEmail();
   const [form, setForm] = useState({
     tipo: jogador.tipo,
     nivel: jogador.nivel,
@@ -25,9 +26,12 @@ function JogadorEditModal({
     ativo: jogador.ativo,
     is_admin: jogador.is_admin,
   });
+  const [email, setEmail] = useState('');
+  const [emailEnviado, setEmailEnviado] = useState(false);
   const [error, setError] = useState('');
 
   const handleSave = async () => {
+    setError('');
     try {
       await atualizarMutation.mutateAsync({ userId: jogador.id, dados: form });
       onClose();
@@ -36,7 +40,19 @@ function JogadorEditModal({
     }
   };
 
+  const handleVincularEmail = async () => {
+    setError('');
+    if (!email.trim()) return;
+    try {
+      await vincularMutation.mutateAsync({ profileId: jogador.id, email: email.trim() });
+      setEmailEnviado(true);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Erro ao vincular e-mail');
+    }
+  };
+
   const selectClass = "w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500";
+  const inputClass = "w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500";
 
   return (
     <div className="space-y-4">
@@ -51,6 +67,32 @@ function JogadorEditModal({
           {jogador.apelido && <p className="text-xs text-gray-400">{jogador.nome}</p>}
         </div>
       </div>
+
+      {jogador.tipo === 'avulso' && (
+        <div className="border border-blue-200 bg-blue-50 rounded-xl p-3 space-y-2">
+          <p className="text-xs font-semibold text-blue-700">Vincular e-mail ao jogador</p>
+          {emailEnviado ? (
+            <p className="text-xs text-green-700">✅ E-mail enviado! O jogador receberá um link para criar a senha.</p>
+          ) : (
+            <>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="email@exemplo.com"
+                className={inputClass}
+              />
+              <button
+                onClick={handleVincularEmail}
+                disabled={!email.trim() || vincularMutation.isPending}
+                className="w-full py-2 bg-blue-600 text-white rounded-xl text-xs font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {vincularMutation.isPending ? <Spinner size="sm" /> : '✉️ Enviar convite de acesso'}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>

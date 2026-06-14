@@ -121,6 +121,23 @@ export interface ConvidarJogadorData {
   posicao: UserPosicao;
 }
 
+export async function vincularEmail(profileId: string, email: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Não autenticado');
+
+  const res = await fetch('/api/admin/vincular-email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ profileId, email }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'Erro ao vincular e-mail');
+}
+
 export async function convidarJogador(dados: ConvidarJogadorData): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Não autenticado');
