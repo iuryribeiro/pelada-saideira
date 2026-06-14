@@ -68,8 +68,7 @@ function JogadorEditModal({
         </div>
       </div>
 
-      {jogador.tipo === 'avulso' && (
-        <div className="border border-blue-200 bg-blue-50 rounded-xl p-3 space-y-2">
+      <div className="border border-blue-200 bg-blue-50 rounded-xl p-3 space-y-2">
           <p className="text-xs font-semibold text-blue-700">Vincular e-mail ao jogador</p>
           {emailEnviado ? (
             <p className="text-xs text-green-700">✅ E-mail enviado! O jogador receberá um link para criar a senha.</p>
@@ -92,7 +91,6 @@ function JogadorEditModal({
             </>
           )}
         </div>
-      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
