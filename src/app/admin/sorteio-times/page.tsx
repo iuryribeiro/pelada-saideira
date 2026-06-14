@@ -66,13 +66,17 @@ export default function SorteioTimesPage() {
   }
 
   function sortear() {
-    const sorted = [...linhasChegaram].sort((a, b) => nivelJogador(b) - nivelJogador(a));
+    // Shuffle randomly first so Fora isn't always the weakest players
+    const embaralhado = [...linhasChegaram].sort(() => Math.random() - 0.5);
+    const jogando = embaralhado.slice(0, POR_TIME * 2);
+    const foraL   = embaralhado.slice(POR_TIME * 2);
+
+    // Sort only the playing players by skill for balanced snake draft
+    const sorted = [...jogando].sort((a, b) => nivelJogador(b) - nivelJogador(a));
     const timeAL: PresencaComPerfil[] = [];
     const timeBL: PresencaComPerfil[] = [];
-    const foraL:  PresencaComPerfil[] = [];
 
     for (let i = 0; i < sorted.length; i++) {
-      if (i >= POR_TIME * 2) { foraL.push(sorted[i]); continue; }
       const round = Math.floor(i / 2);
       const pos   = i % 2;
       const toA   = round % 2 === 0 ? pos === 0 : pos === 1;
