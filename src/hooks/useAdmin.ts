@@ -13,6 +13,7 @@ import {
   convidarJogador,
   ConvidarJogadorData,
   vincularEmail,
+  reenviarLinkSenha,
   fetchJogosDisponiveis,
   adicionarAvulsoAoJogo,
   adicionarConvidadoComPerfil,
@@ -142,6 +143,12 @@ export function useVincularEmail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todosJogadores'] });
     },
+  });
+}
+
+export function useReenviarLinkSenha() {
+  return useMutation({
+    mutationFn: ({ email }: { email: string }) => reenviarLinkSenha(email),
   });
 }
 

@@ -3,12 +3,30 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
-import { useTodosJogadores, useAtualizarJogador, useCadastrarAvulso, useConvidarJogador, useVincularEmail } from '@/hooks/useAdmin';
+import { useTodosJogadores, useAtualizarJogador, useCadastrarAvulso, useConvidarJogador, useVincularEmail, useReenviarLinkSenha } from '@/hooks/useAdmin';
 import { Modal } from '@/components/ui/Modal';
 import { TipoBadge, PosicaoBadge } from '@/components/ui/Badge';
 import { Spinner, FullPageSpinner } from '@/components/ui/Spinner';
 import { Profile, UserPosicao, UserTipo } from '@/types/database';
-import { ArrowLeft, Search, UserPlus, Edit2, UserCircle } from 'lucide-react';
+import { ArrowLeft, Search, UserPlus, Edit2, UserCircle, Copy, Check as CheckIcon } from 'lucide-react';
+
+function CopyLinkButton({ link }: { link: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+    >
+      {copied ? <CheckIcon className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5 text-gray-500" />}
+      {copied ? 'Copiado!' : 'Copiar link'}
+    </button>
+  );
+}
 
 function JogadorEditModal({
   jogador,
@@ -19,6 +37,7 @@ function JogadorEditModal({
 }) {
   const atualizarMutation = useAtualizarJogador();
   const vincularMutation = useVincularEmail();
+  const reenviarMutation = useReenviarLinkSenha();
   const [form, setForm] = useState({
     tipo: jogador.tipo,
     nivel: jogador.nivel,
@@ -27,7 +46,11 @@ function JogadorEditModal({
     is_admin: jogador.is_admin,
   });
   const [email, setEmail] = useState('');
+  const [actionLink, setActionLink] = useState<string | null>(null);
   const [emailEnviado, setEmailEnviado] = useState(false);
+  const [reenviarEmail, setReenviarEmail] = useState('');
+  const [reenviarLink, setReenviarLink] = useState<string | null>(null);
+  const [reenviarEnviado, setReenviarEnviado] = useState(false);
   const [error, setError] = useState('');
 
   const handleSave = async () => {
@@ -44,10 +67,23 @@ function JogadorEditModal({
     setError('');
     if (!email.trim()) return;
     try {
-      await vincularMutation.mutateAsync({ profileId: jogador.id, email: email.trim() });
+      const result = await vincularMutation.mutateAsync({ profileId: jogador.id, email: email.trim() });
+      setActionLink(result.actionLink);
       setEmailEnviado(true);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Erro ao vincular e-mail');
+    }
+  };
+
+  const handleReenviarLink = async () => {
+    setError('');
+    if (!reenviarEmail.trim()) return;
+    try {
+      const result = await reenviarMutation.mutateAsync({ email: reenviarEmail.trim() });
+      setReenviarLink(result.actionLink);
+      setReenviarEnviado(true);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Erro ao reenviar link');
     }
   };
 
@@ -68,10 +104,20 @@ function JogadorEditModal({
         </div>
       </div>
 
+      {/* Vincular e-mail (apenas avulsos sem conta) */}
+      {jogador.tipo !== 'mensalista' && (
       <div className="border border-blue-200 bg-blue-50 rounded-xl p-3 space-y-2">
           <p className="text-xs font-semibold text-blue-700">Vincular e-mail ao jogador</p>
           {emailEnviado ? (
-            <p className="text-xs text-green-700">✅ E-mail enviado! O jogador receberá um link para criar a senha.</p>
+            <div className="space-y-2">
+              <p className="text-xs text-green-700">✅ Conta criada! E-mail de acesso enviado.</p>
+              {actionLink && (
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-500">Se o e-mail não chegar, compartilhe este link diretamente:</p>
+                  <CopyLinkButton link={actionLink} />
+                </div>
+              )}
+            </div>
           ) : (
             <>
               <input
@@ -91,6 +137,43 @@ function JogadorEditModal({
             </>
           )}
         </div>
+      )}
+
+      {/* Reenviar link de acesso (mensalistas já vinculados) */}
+      {jogador.tipo === 'mensalista' && (
+        <div className="border border-orange-200 bg-orange-50 rounded-xl p-3 space-y-2">
+          <p className="text-xs font-semibold text-orange-700">Reenviar link de acesso</p>
+          {reenviarEnviado ? (
+            <div className="space-y-2">
+              <p className="text-xs text-green-700">✅ E-mail reenviado!</p>
+              {reenviarLink && (
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-500">Se não chegar, compartilhe este link:</p>
+                  <CopyLinkButton link={reenviarLink} />
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-gray-500">Informe o e-mail associado ao jogador para reenviar o link de criação de senha.</p>
+              <input
+                type="email"
+                value={reenviarEmail}
+                onChange={e => setReenviarEmail(e.target.value)}
+                placeholder="email@exemplo.com"
+                className={inputClass}
+              />
+              <button
+                onClick={handleReenviarLink}
+                disabled={!reenviarEmail.trim() || reenviarMutation.isPending}
+                className="w-full py-2 bg-orange-500 text-white rounded-xl text-xs font-medium hover:bg-orange-600 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {reenviarMutation.isPending ? <Spinner size="sm" /> : '🔑 Reenviar link de acesso'}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>

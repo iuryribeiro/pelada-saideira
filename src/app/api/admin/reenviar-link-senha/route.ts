@@ -23,49 +23,30 @@ export async function POST(req: NextRequest) {
   if (!token) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY não configurada no servidor' }, { status: 500 });
+    return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY não configurada' }, { status: 500 });
   }
 
   const caller = await verificarAdmin(token);
   if (!caller) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 });
 
-  const body = await req.json();
-  const { profileId, email } = body;
-  if (!profileId || !email) {
-    return NextResponse.json({ error: 'profileId e email são obrigatórios' }, { status: 400 });
-  }
+  const { email } = await req.json();
+  if (!email) return NextResponse.json({ error: 'email é obrigatório' }, { status: 400 });
 
   const admin = makeAdminClient();
-
-  // Cria conta auth com o mesmo UUID do perfil — vincula automaticamente
-  const { error: createError } = await admin.auth.admin.createUser({
-    id: profileId,
-    email,
-    email_confirm: true,
-  });
-
-  if (createError) {
-    const msg = createError.message.toLowerCase();
-    if (msg.includes('already') || msg.includes('duplicate') || msg.includes('exists')) {
-      return NextResponse.json({ error: 'Este e-mail já está em uso por outra conta.' }, { status: 409 });
-    }
-    return NextResponse.json({ error: createError.message }, { status: 400 });
-  }
-
-  // Atualiza o perfil para mensalista
-  await admin.from('profiles').update({ tipo: 'mensalista', ativo: true }).eq('id', profileId);
-
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
   const redirectTo = `${appUrl}/redefinir-senha`;
 
-  // Gera link de recovery (não envia email, mas retorna link de fallback para o admin)
-  const { data: linkData } = await admin.auth.admin.generateLink({
+  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: 'recovery',
     email,
     options: { redirectTo },
   });
 
-  // Tenta enviar e-mail via cliente público
+  if (linkError) {
+    return NextResponse.json({ error: linkError.message }, { status: 400 });
+  }
+
+  // Tenta enviar e-mail (pode falhar silenciosamente se email não configurado)
   const anonClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

@@ -120,7 +120,13 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-5 text-center">
+          <div className="mt-4 text-center">
+            <Link href="/esqueci-senha" className="text-sm text-gray-400 hover:text-green-600 transition-colors">
+              Esqueci minha senha
+            </Link>
+          </div>
+
+          <div className="mt-4 text-center">
             <p className="text-sm text-gray-500">
               Não tem conta?{' '}
               <Link href="/cadastro" className="text-green-600 font-medium hover:underline">

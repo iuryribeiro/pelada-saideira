@@ -121,7 +121,7 @@ export interface ConvidarJogadorData {
   posicao: UserPosicao;
 }
 
-export async function vincularEmail(profileId: string, email: string): Promise<void> {
+export async function vincularEmail(profileId: string, email: string): Promise<{ actionLink: string | null }> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Não autenticado');
 
@@ -136,6 +136,25 @@ export async function vincularEmail(profileId: string, email: string): Promise<v
 
   const json = await res.json();
   if (!res.ok) throw new Error(json.error || 'Erro ao vincular e-mail');
+  return { actionLink: json.actionLink ?? null };
+}
+
+export async function reenviarLinkSenha(email: string): Promise<{ actionLink: string | null }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Não autenticado');
+
+  const res = await fetch('/api/admin/reenviar-link-senha', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'Erro ao reenviar link');
+  return { actionLink: json.actionLink ?? null };
 }
 
 export async function convidarJogador(dados: ConvidarJogadorData): Promise<void> {
