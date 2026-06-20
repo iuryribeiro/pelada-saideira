@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth-store';
 import { useAtualizarPerfil } from '@/hooks/useJogadores';
-import { resetPassword } from '@/lib/supabase/auth';
+import { supabase } from '@/lib/supabase/client';
 import { StarRating, NivelLabel } from '@/components/ui/StarRating';
 import { TipoBadge, PosicaoBadge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { UserPosicao } from '@/types/database';
-import { ArrowLeft, Edit2, Check, X, KeyRound, UserCircle } from 'lucide-react';
+import { ArrowLeft, Edit2, Check, X, KeyRound, UserCircle, Eye, EyeOff } from 'lucide-react';
 
 export default function PerfilPage() {
   const router = useRouter();
@@ -25,7 +25,11 @@ export default function PerfilPage() {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [resetLoading, setResetLoading] = useState(false);
+
+  const [showSenhaForm, setShowSenhaForm] = useState(false);
+  const [senhaForm, setSenhaForm] = useState({ nova: '', confirmar: '' });
+  const [showNova, setShowNova] = useState(false);
+  const [senhaLoading, setSenhaLoading] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -69,21 +73,24 @@ export default function PerfilPage() {
     }
   };
 
-  const handleResetPassword = async () => {
-    if (!profile) return;
-    setResetLoading(true);
+  const handleTrocarSenha = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!senhaForm.nova || !senhaForm.confirmar) { setError('Preencha os dois campos.'); return; }
+    if (senhaForm.nova.length < 6) { setError('A senha deve ter pelo menos 6 caracteres.'); return; }
+    if (senhaForm.nova !== senhaForm.confirmar) { setError('As senhas não coincidem.'); return; }
+    setSenhaLoading(true);
     setError('');
     try {
-      const { data: { session } } = await import('@/lib/supabase/client').then(m => m.supabase.auth.getSession());
-      if (session?.user.email) {
-        await resetPassword(session.user.email);
-        setSuccess('Email de redefinição enviado!');
-        setTimeout(() => setSuccess(''), 4000);
-      }
+      const { error } = await supabase.auth.updateUser({ password: senhaForm.nova });
+      if (error) throw error;
+      setSuccess('Senha alterada com sucesso!');
+      setSenhaForm({ nova: '', confirmar: '' });
+      setShowSenhaForm(false);
+      setTimeout(() => setSuccess(''), 4000);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Erro ao enviar email');
+      setError(e instanceof Error ? e.message : 'Erro ao alterar senha');
     } finally {
-      setResetLoading(false);
+      setSenhaLoading(false);
     }
   };
 
@@ -238,19 +245,73 @@ export default function PerfilPage() {
         {/* Security */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
           <h2 className="font-semibold text-gray-900 mb-3">Segurança</h2>
-          <button
-            onClick={handleResetPassword}
-            disabled={resetLoading}
-            className="flex items-center gap-3 w-full p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-          >
-            <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
-              {resetLoading ? <Spinner size="sm" /> : <KeyRound className="w-4 h-4 text-blue-600" />}
-            </div>
-            <div className="text-left">
-              <p className="text-sm font-medium text-gray-900">Redefinir senha</p>
-              <p className="text-xs text-gray-400">Enviar email de redefinição</p>
-            </div>
-          </button>
+
+          {!showSenhaForm ? (
+            <button
+              onClick={() => { setShowSenhaForm(true); setError(''); }}
+              className="flex items-center gap-3 w-full p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+            >
+              <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                <KeyRound className="w-4 h-4 text-blue-600" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-medium text-gray-900">Alterar senha</p>
+                <p className="text-xs text-gray-400">Definir uma nova senha de acesso</p>
+              </div>
+            </button>
+          ) : (
+            <form onSubmit={handleTrocarSenha} className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-500 font-medium">Nova senha</label>
+                <div className="relative mt-1">
+                  <input
+                    type={showNova ? 'text' : 'password'}
+                    value={senhaForm.nova}
+                    onChange={e => setSenhaForm(f => ({ ...f, nova: e.target.value }))}
+                    placeholder="Mínimo 6 caracteres"
+                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
+                    disabled={senhaLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNova(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  >
+                    {showNova ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 font-medium">Confirmar nova senha</label>
+                <input
+                  type="password"
+                  value={senhaForm.confirmar}
+                  onChange={e => setSenhaForm(f => ({ ...f, confirmar: e.target.value }))}
+                  placeholder="••••••••"
+                  className="w-full mt-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  disabled={senhaLoading}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => { setShowSenhaForm(false); setSenhaForm({ nova: '', confirmar: '' }); setError(''); }}
+                  className="flex-1 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={senhaLoading}
+                  className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {senhaLoading ? <Spinner size="sm" /> : 'Salvar'}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
         {profile.is_admin && (
