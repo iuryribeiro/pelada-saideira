@@ -101,11 +101,14 @@ function JogadorEditModal({
         <div>
           <p className="font-semibold text-gray-900">{jogador.apelido || jogador.nome}</p>
           {jogador.apelido && <p className="text-xs text-gray-400">{jogador.nome}</p>}
+          <p className="text-xs text-gray-400 mt-0.5">
+            {jogador.email ? jogador.email : <span className="text-orange-500">Sem e-mail vinculado</span>}
+          </p>
         </div>
       </div>
 
-      {/* Vincular e-mail (apenas avulsos sem conta) */}
-      {jogador.tipo !== 'mensalista' && (
+      {/* Vincular e-mail (avulsos, ou mensalistas ainda sem e-mail) */}
+      {!jogador.email && (
       <div className="border border-blue-200 bg-blue-50 rounded-xl p-3 space-y-2">
           <p className="text-xs font-semibold text-blue-700">Vincular e-mail ao jogador</p>
           {emailEnviado ? (
@@ -139,8 +142,8 @@ function JogadorEditModal({
         </div>
       )}
 
-      {/* Reenviar link de acesso (mensalistas já vinculados) */}
-      {jogador.tipo === 'mensalista' && (
+      {/* Reenviar link de acesso (mensalistas com e-mail já vinculado) */}
+      {jogador.email && (
         <div className="border border-orange-200 bg-orange-50 rounded-xl p-3 space-y-2">
           <p className="text-xs font-semibold text-orange-700">Reenviar link de acesso</p>
           {reenviarEnviado ? (
@@ -427,6 +430,7 @@ export default function GerenciarJogadoresPage() {
                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     <TipoBadge tipo={jogador.tipo} />
                     <PosicaoBadge posicao={jogador.posicao} />
+                    {!jogador.email && <span className="text-xs text-orange-500 font-medium">sem e-mail</span>}
                   </div>
                 </div>
                 <button

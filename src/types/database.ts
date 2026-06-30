@@ -10,6 +10,7 @@ export interface Profile {
   id: string;
   nome: string;
   apelido: string | null;
+  email: string | null;
   telefone: string | null;
   foto_url: string | null;
   tipo: UserTipo;

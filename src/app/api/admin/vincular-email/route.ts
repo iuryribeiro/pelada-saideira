@@ -52,8 +52,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: createError.message }, { status: 400 });
   }
 
-  // Atualiza o perfil para mensalista
-  await admin.from('profiles').update({ tipo: 'mensalista', ativo: true }).eq('id', profileId);
+  // Atualiza o perfil para mensalista e salva email
+  await admin.from('profiles').update({ tipo: 'mensalista', ativo: true, email }).eq('id', profileId);
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
   const redirectTo = `${appUrl}/redefinir-senha`;
